@@ -1,0 +1,92 @@
+// ----------  Prisma Schema  -----------------------------------------------
+datasource db {
+  provider = "postgresql"            // or mysql/sqlite
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+/// ─────────────────────────────────────────────────────────────────────────
+/// ENUMS
+/// ─────────────────────────────────────────────────────────────────────────
+enum NodeStatus {
+  ONLINE
+  OFFLINE
+  UNKNOWN
+}
+
+enum TaskStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+/// ─────────────────────────────────────────────────────────────────────────
+///  USERS  – one table for both producers *and* consumers
+/// ─────────────────────────────────────────────────────────────────────────
+model User {
+  id            String  @id @default(cuid())
+  email         String  @unique
+  username      String  @unique
+  walletAddress String  @unique
+  password      String   
+
+  /// RELATIONS
+  nodes         Node[]  @relation("UserNodes")   // GPU rigs a user is hosting
+  tasks         Task[]  @relation("UserTasks")   // jobs this user has submitted
+
+  @@map("users")          // nice, explicit table names
+}
+
+/// ─────────────────────────────────────────────────────────────────────────
+///  GPU NODES  – one node belongs to exactly one producer (User)
+/// ─────────────────────────────────────────────────────────────────────────
+model Node {
+  id            String     @id @default(cuid())
+  gpuModel      String?                      // e.g. "RTX 3090"
+  nodeUrl       String                      // e.g. "http://worker1:5000"
+  totalMemoryMb Int
+  freeMemoryMb  Int?                        // updated by Worker-heartbeat
+  status        NodeStatus @default(UNKNOWN)
+  lastHeartbeat DateTime?
+
+  /// RELATIONS
+  ownerId       String
+  owner User  @relation("UserNodes", fields: [ownerId], references: [id], onDelete: Restrict) // ⬅️ forbid owner deletion
+  tasks         Task[]     @relation("NodeTasks")
+
+  @@map("nodes")
+}
+
+/// ─────────────────────────────────────────────────────────────────────────
+///  TASKS  – one consumer → many tasks; one node → many tasks
+/// ─────────────────────────────────────────────────────────────────────────
+model Task {
+  id            String     @id @default(cuid())
+  name          String
+
+  // –––––  DATASET HANDLING  –––––
+  datasetUrl    String?                // presigned S3 / IPFS / https:// link
+  datasetInline Bytes?                 // fallback for small, zipped payloads
+  trainedModel  Bytes?
+
+  // –––––  STATE  –––––
+  status        TaskStatus @default(QUEUED)
+  createdAt     DateTime   @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  usedNodeMemoryMb Int
+
+  // –––––  RELATIONS  –––––
+  consumerId    String
+  consumer   User @relation(name: "UserTasks", fields: [consumerId], references: [id], onDelete: Restrict) // ⬅️ forbid consumer deletion
+
+  nodeId        String?                  // null until Dispatcher assigns
+  node   Node? @relation(name: "NodeTasks",fields: [nodeId],references: [id],onDelete: Restrict)  // ⬅️ forbid node deletion
+
+  @@map("tasks")
+}

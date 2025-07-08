@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  gpu_flex_api_db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER_MAIN}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_MAIN}
+      POSTGRES_DB: ${POSTGRES_DATABASE_MAIN}
+    volumes:
+      - key_database_data_1:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+
+volumes:
+  key_database_data_1:

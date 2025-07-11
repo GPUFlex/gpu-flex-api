@@ -6,16 +6,16 @@ export class CreateUserDto {
   email: string;
 
   @IsString()
-  @IsNotEmpty()
-  username: string;
+  @IsOptional()
+  username?: string;
 
   @IsString()
   @IsNotEmpty()
   password: string;
 
   @IsString()
-  @IsNotEmpty()
-  walletAddress: string;
+  @IsOptional()
+  walletAddress?: string;
 }
 
 export class UpdateUserDto {

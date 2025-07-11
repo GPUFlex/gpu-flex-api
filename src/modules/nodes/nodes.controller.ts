@@ -6,6 +6,7 @@ import {
     Param,
     Patch,
     Post,
+    Query,
   } from '@nestjs/common';
   import { NodesService } from './nodes.service';
   import { CreateNodeDto, UpdateNodeDto } from './dto/nodes.dto';
@@ -27,6 +28,12 @@ import {
     @Get(':id')
     findOne(@Param('id') id: string) {
       return this.nodesService.findOne(id);
+    }
+
+    @Get('owner/:ownerId')
+    async findNodeByOwner(@Param('ownerId') ownerId: string) {
+      //console.log('ownerId =', ownerId); // ✅ should now log correct ID
+      return this.nodesService.findNodeByOwner(ownerId);
     }
   
     @Patch(':id')

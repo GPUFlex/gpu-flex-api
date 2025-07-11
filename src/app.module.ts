@@ -3,9 +3,10 @@ import { PrismaModule } from './modules/infrastructure/prisma/prisma.module';
 import { UsersModule } from './modules/users/users.module';
 import { NodesModule } from './modules/nodes/nodes.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, NodesModule, TasksModule],
+  imports: [PrismaModule, AuthModule, UsersModule, NodesModule, TasksModule],
   controllers: [],
   providers: [],
 })

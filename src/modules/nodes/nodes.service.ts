@@ -23,6 +23,7 @@ import {
         throw new BadRequestException(`Owner ${dto.ownerId} does not exist`);
       }
   
+      //console.log("create node : ", dto);
       return this.prisma.node.create({ data: dto });
     }
   
@@ -38,6 +39,18 @@ import {
         include: { owner: true, tasks: true },
       });
       if (!node) throw new NotFoundException(`Node ${id} not found`);
+      return node;
+    }
+
+    //todo check by desktop IP as well, since 1 owner can register multiple nodes
+    async findNodeByOwner(ownerId: string) {
+      const node = await this.prisma.node.findFirst({
+        where: { ownerId },
+        include: { owner: true },
+      });
+      //console.log("ownerId = ", ownerId);
+      //console.log("node = ", node);
+      if (!node) throw new NotFoundException(`Node for user ${ownerId} not found`);
       return node;
     }
   

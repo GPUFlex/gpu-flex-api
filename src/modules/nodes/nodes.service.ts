@@ -12,6 +12,7 @@ import {
   @Injectable()
   export class NodesService {
     constructor() {}
+
     @Inject()
     private readonly prisma: PrismaService
   

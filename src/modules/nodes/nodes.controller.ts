@@ -3,6 +3,7 @@ import {
     Controller,
     Delete,
     Get,
+    Inject,
     Param,
     Patch,
     Post,
@@ -13,7 +14,10 @@ import {
   
   @Controller('nodes')
   export class NodesController {
-    constructor(private readonly nodesService: NodesService) {}
+    constructor() {}
+
+    @Inject()
+    private readonly nodesService: NodesService
   
     @Post()
     create(@Body() dto: CreateNodeDto) {

@@ -4,6 +4,7 @@ import {
     ConflictException,
     BadRequestException,
     InternalServerErrorException,
+    Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../infrastructure/prisma/prisma.service';
 import { CreateTaskDto } from './dto/tasks.dto';
@@ -11,10 +12,16 @@ import { TaskStatus, NodeStatus, Prisma } from '@prisma/client';
 import * as zlib from 'zlib';
 import * as FormData from 'form-data';
 import axios from 'axios';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TasksService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor() { }
+
+    @Inject()
+    private readonly prisma: PrismaService
+    @Inject()
+    private readonly configService: ConfigService
 
     async getConsumerTasks(consumerId: string) {
         const consumerTasks = await this.prisma.task.findMany({
@@ -97,17 +104,24 @@ export class TasksService {
         form.append('data', dataset, 'housing.csv');
 
         // 3. callback_url so coordinator can POST the result back
-        const callback = `http://host.docker.internal:8000/api/tasks/${taskId}/finished`;
+        const backendCallback = this.configService.get<string>('BACKEND_CALLBACK_URL_FOR_COORDINATOR');
+        const coordinatorUrl = this.configService.get<string>('COORDINATOR_URL');
+
+        const callback = `${backendCallback}/api/tasks/${taskId}/finished`;
         form.append('callback_url', callback);
 
-        // const workers = await this.prisma.node.findMany({
-        //     where: { status: NodeStatus.ONLINE },
-        //     select: { nodeUrl: true },
-        // });
-        // form.append('workers', JSON.stringify(workers.map(w => w.nodeUrl)));
+        // Dynamically fetch ONLINE workers
+        const workers = await this.prisma.node.findMany({
+            where: { status: NodeStatus.ONLINE },
+            select: { nodeUrl: true },
+        });
+        const workerUrls = workers.map(w => w.nodeUrl);
+        form.append('workers', JSON.stringify(workerUrls));
+
+        console.log(JSON.stringify(workerUrls));
 
         // 4. Fire-and-forget coordinator call
-        axios.post('http://localhost:6000/start_training', form, {
+        axios.post(`${coordinatorUrl}/start_training`, form, {
             headers: form.getHeaders(),
         }).catch(err => {
             console.error('❌ Coordinator call failed:', err.message);
